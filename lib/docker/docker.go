@@ -48,7 +48,7 @@ func ParseDockerImage(image string) (string, string, string) {
 
 func AuthDockerHub(ctx context.Context, repository, username, password string) (string, error) {
 	scope := fmt.Sprintf("repository:%s:pull", repository)
-	url := "https://auth.docker.io/token?service=registry.docker.io&scope=%s" + scope
+	url := fmt.Sprintf("https://auth.docker.io/token?service=registry.docker.io&scope=%s", scope)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
