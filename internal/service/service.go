@@ -7,9 +7,9 @@ import (
 	"log/slog"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@v2.43.2 --name=Repository
 type Repository interface {
-	GetByImage(ctx context.Context, image string) (bool, error)
-	SetImage(ctx context.Context, image string, exists bool) error
+	GetExists(ctx context.Context, registry, repository, tag, username, password string) (bool, error)
 }
 
 type Service struct {
@@ -24,22 +24,10 @@ func NewService(log *slog.Logger, repo Repository) *Service {
 func (s *Service) CheckImage(ctx context.Context, input domain.CheckImageRequest) (bool, error) {
 	registry, repository, tag := docker.ParseDockerImage(input.Image)
 
-	cacheExists, err := s.repo.GetByImage(ctx, repository)
+	exists, err := s.repo.GetExists(ctx, registry, repository, tag, input.Username, input.Password)
 
 	if err == nil {
-		return cacheExists, nil
-	}
-
-	exists, err := docker.CheckImage(ctx, registry, repository, tag, input.Username, input.Password)
-
-	if err != nil {
-		return false, err
-	}
-
-	err = s.repo.SetImage(ctx, repository, exists)
-
-	if err != nil {
-		return false, err
+		return exists, nil
 	}
 
 	return exists, nil

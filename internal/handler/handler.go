@@ -8,6 +8,7 @@ import (
 	"net/http"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@v2.43.2 --name=Service
 type Service interface {
 	CheckImage(ctx context.Context, input domain.CheckImageRequest) (bool, error)
 }
