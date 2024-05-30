@@ -1,24 +1,19 @@
 package handler
 
 import (
-	"context"
 	"github.com/blazee5/imageChecker/internal/domain"
+	"github.com/blazee5/imageChecker/internal/service"
 	"github.com/gin-gonic/gin"
 	"log/slog"
 	"net/http"
 )
 
-//go:generate go run github.com/vektra/mockery/v2@v2.43.2 --name=Service
-type Service interface {
-	CheckImage(ctx context.Context, input domain.CheckImageRequest) (bool, error)
-}
-
 type Handler struct {
 	log     *slog.Logger
-	service Service
+	service *service.Service
 }
 
-func NewHandler(log *slog.Logger, service Service) *Handler {
+func NewHandler(log *slog.Logger, service *service.Service) *Handler {
 	return &Handler{log: log, service: service}
 }
 

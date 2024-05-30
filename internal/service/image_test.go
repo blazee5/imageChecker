@@ -5,7 +5,8 @@ import (
 	"testing"
 
 	"github.com/blazee5/imageChecker/internal/domain"
-	"github.com/blazee5/imageChecker/internal/service/mocks"
+	"github.com/blazee5/imageChecker/internal/repository"
+	"github.com/blazee5/imageChecker/internal/repository/mocks"
 	"github.com/blazee5/imageChecker/lib/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -15,7 +16,8 @@ func TestService_CheckImage(t *testing.T) {
 	t.Parallel()
 
 	type fields struct {
-		repository *mocks.Repository
+		cacheRepo  *mocks.CacheRepository
+		dockerRepo *mocks.DockerRepository
 	}
 
 	tests := []struct {
@@ -26,7 +28,7 @@ func TestService_CheckImage(t *testing.T) {
 		wantErr  bool
 	}{
 		{
-			name: "success get from repository - image exists",
+			name: "success get from cache - image exists",
 			input: domain.CheckImageRequest{
 				Image:     "nginx",
 				IsPrivate: false,
@@ -34,7 +36,7 @@ func TestService_CheckImage(t *testing.T) {
 				Password:  "",
 			},
 			mockFunc: func(f *fields) {
-				f.repository.On("GetExists", mock.Anything, "index.docker.io", "library/nginx", "latest", "", "").
+				f.cacheRepo.On("GetByImage", mock.Anything, "library/nginx").
 					Return(true, nil)
 			},
 			response: true,
@@ -49,8 +51,12 @@ func TestService_CheckImage(t *testing.T) {
 				Password:  "",
 			},
 			mockFunc: func(f *fields) {
-				f.repository.On("GetExists", mock.Anything, "index.docker.io", "bitnami/nginx", "latest", "", "").
+				f.cacheRepo.On("GetByImage", mock.Anything, "bitnami/nginx").
+					Return(false, assert.AnError)
+				f.dockerRepo.On("GetExists", mock.Anything, "index.docker.io", "bitnami/nginx", "latest", "", "").
 					Return(true, nil)
+				f.cacheRepo.On("SetByImage", mock.Anything, "bitnami/nginx", true).
+					Return(nil)
 			},
 			response: true,
 			wantErr:  false,
@@ -64,8 +70,12 @@ func TestService_CheckImage(t *testing.T) {
 				Password:  "",
 			},
 			mockFunc: func(f *fields) {
-				f.repository.On("GetExists", mock.Anything, "index.docker.io", "library/nonexistent", "latest", "", "").
+				f.cacheRepo.On("GetByImage", mock.Anything, "library/nonexistent").
+					Return(false, assert.AnError)
+				f.dockerRepo.On("GetExists", mock.Anything, "index.docker.io", "library/nonexistent", "latest", "", "").
 					Return(false, nil)
+				f.cacheRepo.On("SetByImage", mock.Anything, "library/nonexistent", false).
+					Return(nil)
 			},
 			response: false,
 			wantErr:  false,
@@ -79,30 +89,40 @@ func TestService_CheckImage(t *testing.T) {
 				Password:  "",
 			},
 			mockFunc: func(f *fields) {
-				f.repository.On("GetExists", mock.Anything, "index.docker.io", "test/image", "latest", "", "").
+				f.cacheRepo.On("GetByImage", mock.Anything, "test/image").
+					Return(false, assert.AnError)
+				f.dockerRepo.On("GetExists", mock.Anything, "index.docker.io", "test/image", "latest", "", "").
 					Return(false, assert.AnError)
 			},
 			response: false,
-			wantErr:  false,
+			wantErr:  true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := fields{repository: mocks.NewRepository(t)}
+			f := fields{
+				cacheRepo:  mocks.NewCacheRepository(t),
+				dockerRepo: mocks.NewDockerRepository(t),
+			}
 			tt.mockFunc(&f)
 
-			s := &Service{
-				log:  logger.NewLogger(),
-				repo: f.repository,
+			log := logger.NewLogger()
+			svc := &ImageService{
+				log: log,
+				repo: &repository.Repository{
+					CacheRepository:  f.cacheRepo,
+					DockerRepository: f.dockerRepo,
+				},
 			}
 
-			result, err := s.CheckImage(context.TODO(), tt.input)
+			result, err := svc.CheckImage(context.TODO(), tt.input)
 
 			assert.Equal(t, tt.wantErr, err != nil)
 			assert.EqualValues(t, tt.response, result)
 
-			f.repository.AssertExpectations(t)
+			f.cacheRepo.AssertExpectations(t)
+			f.dockerRepo.AssertExpectations(t)
 		})
 	}
 }

@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/blazee5/imageChecker/internal/config"
 	"github.com/blazee5/imageChecker/internal/handler"
-	"github.com/blazee5/imageChecker/internal/repository/redis"
+	"github.com/blazee5/imageChecker/internal/repository"
 	"github.com/blazee5/imageChecker/internal/service"
 	redisLib "github.com/blazee5/imageChecker/lib/db/redis"
 	"github.com/blazee5/imageChecker/lib/logger"
@@ -27,9 +27,9 @@ func main() {
 
 	r := gin.Default()
 
-	repository := redis.NewRepository(rdb)
-	service := service.NewService(logger, repository)
-	handlers := handler.NewHandler(logger, service)
+	repositories := repository.NewRepository(logger, cfg, rdb)
+	services := service.NewService(logger, repositories)
+	handlers := handler.NewHandler(logger, services)
 
 	handler.RegisterHandlers(r, handlers)
 

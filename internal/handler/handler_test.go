@@ -3,13 +3,14 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/blazee5/imageChecker/internal/service"
+	"github.com/blazee5/imageChecker/internal/service/mocks"
 	"github.com/blazee5/imageChecker/lib/logger"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/blazee5/imageChecker/internal/domain"
-	"github.com/blazee5/imageChecker/internal/handler/mocks"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -17,7 +18,7 @@ import (
 
 func TestHandler_Check(t *testing.T) {
 	type fields struct {
-		service *mocks.Service
+		service *mocks.Image
 	}
 
 	tests := []struct {
@@ -31,7 +32,7 @@ func TestHandler_Check(t *testing.T) {
 		{
 			name: "success",
 			fields: fields{
-				service: mocks.NewService(t),
+				service: mocks.NewImage(t),
 			},
 			input: domain.CheckImageRequest{
 				Image:     "nginx",
@@ -51,7 +52,7 @@ func TestHandler_Check(t *testing.T) {
 		{
 			name: "bad request",
 			fields: fields{
-				service: mocks.NewService(t),
+				service: mocks.NewImage(t),
 			},
 			input: domain.CheckImageRequest{
 				Image:     "",
@@ -68,7 +69,7 @@ func TestHandler_Check(t *testing.T) {
 		{
 			name: "server error",
 			fields: fields{
-				service: mocks.NewService(t),
+				service: mocks.NewImage(t),
 			},
 			input: domain.CheckImageRequest{
 				Image:     "nginx",
@@ -93,7 +94,10 @@ func TestHandler_Check(t *testing.T) {
 			tt.mockFunc(&f)
 
 			log := logger.NewLogger()
-			h := NewHandler(log, f.service)
+			svc := &service.Service{
+				Image: f.service,
+			}
+			h := NewHandler(log, svc)
 
 			router := gin.Default()
 			router.POST("/check", h.Check)

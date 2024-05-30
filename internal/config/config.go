@@ -3,10 +3,12 @@ package config
 import (
 	"github.com/ilyakaznacheev/cleanenv"
 	"log"
+	"time"
 )
 
 type Config struct {
-	Env        string `env:"ENV"           env-default:"local"     yaml:"env"`
+	Env        string        `env:"ENV"      env-default:"local"  yaml:"env"`
+	Timeout    time.Duration `env:"TIMEOUT"  env-default:"4s"     yaml:"timeout"`
 	HTTPServer `yaml:"http_server"`
 	Redis      `yaml:"redis"`
 }

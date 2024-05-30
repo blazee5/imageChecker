@@ -1,4 +1,5 @@
 env: "local"
+timeout: "4s"
 
 http_server:
   port: "3000"

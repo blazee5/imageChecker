@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 )
 
 const (
@@ -46,7 +47,7 @@ func ParseDockerImage(image string) (string, string, string) {
 	return registry, repository, tag
 }
 
-func AuthDockerHub(ctx context.Context, repository, username, password string) (string, error) {
+func AuthDockerHub(ctx context.Context, repository, username, password string, timeout time.Duration) (string, error) {
 	scope := fmt.Sprintf("repository:%s:pull", repository)
 	url := fmt.Sprintf("https://auth.docker.io/token?service=registry.docker.io&scope=%s", scope)
 
@@ -60,7 +61,10 @@ func AuthDockerHub(ctx context.Context, repository, username, password string) (
 		req.Header.Set("Authorization", "Basic "+auth)
 	}
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: timeout,
+	}
+
 	resp, err := client.Do(req)
 
 	if err != nil {
@@ -89,7 +93,7 @@ func AuthOtherRegistry(username, password string) (string, error) {
 	return auth, nil
 }
 
-func CheckImage(ctx context.Context, registry, repository, tag, username, password string) (bool, error) {
+func CheckImage(ctx context.Context, registry, repository, tag, username, password string, timeout time.Duration) (bool, error) {
 	url := fmt.Sprintf("https://%s/v2/%s/manifests/%s", registry, repository, tag)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
@@ -98,7 +102,7 @@ func CheckImage(ctx context.Context, registry, repository, tag, username, passwo
 	}
 
 	if registry == defaultRegistry {
-		token, err := AuthDockerHub(ctx, repository, username, password)
+		token, err := AuthDockerHub(ctx, repository, username, password, timeout)
 		if err != nil {
 			return false, err
 		}
@@ -113,7 +117,10 @@ func CheckImage(ctx context.Context, registry, repository, tag, username, passwo
 		req.Header.Set("Authorization", "Basic "+token)
 	}
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: timeout,
+	}
+
 	resp, err := client.Do(req)
 
 	if err != nil {
