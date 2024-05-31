@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/go-resty/resty/v2"
 	"net/http"
 	"strings"
 	"time"
@@ -51,34 +52,25 @@ func AuthDockerHub(ctx context.Context, repository, username, password string, t
 	scope := fmt.Sprintf("repository:%s:pull", repository)
 	url := fmt.Sprintf("https://auth.docker.io/token?service=registry.docker.io&scope=%s", scope)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return "", err
-	}
+	client := resty.New().SetTimeout(timeout)
+	req := client.R().SetContext(ctx)
 
 	if username != "" && password != "" {
 		auth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
-		req.Header.Set("Authorization", "Basic "+auth)
+		req.SetHeader("Authorization", "Basic "+auth)
 	}
 
-	client := &http.Client{
-		Timeout: timeout,
-	}
-
-	resp, err := client.Do(req)
-
+	resp, err := req.Get(url)
 	if err != nil {
-		return "", fmt.Errorf("error while do auth request: %w", err)
+		return "", fmt.Errorf("error while doing auth request: %w", err)
 	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("error while get auth token, status code: %d", resp.StatusCode)
+	if resp.StatusCode() != http.StatusOK {
+		return "", fmt.Errorf("error while getting auth token, status code: %d", resp.StatusCode())
 	}
 
 	var response AuthResponse
-	err = json.NewDecoder(resp.Body).Decode(&response)
+	err = json.Unmarshal(resp.Body(), &response)
 
 	if err != nil {
 		return "", err
@@ -89,17 +81,14 @@ func AuthDockerHub(ctx context.Context, repository, username, password string, t
 
 func AuthOtherRegistry(username, password string) (string, error) {
 	auth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
-
 	return auth, nil
 }
 
 func CheckImage(ctx context.Context, registry, repository, tag, username, password string, timeout time.Duration) (bool, error) {
 	url := fmt.Sprintf("https://%s/v2/%s/manifests/%s", registry, repository, tag)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodHead, url, nil)
-	if err != nil {
-		return false, err
-	}
+	client := resty.New().SetTimeout(timeout)
+	req := client.R().SetContext(ctx).SetHeader("Accept", "application/vnd.docker.distribution.manifest.v2+json")
 
 	if registry == defaultRegistry {
 		token, err := AuthDockerHub(ctx, repository, username, password, timeout)
@@ -107,29 +96,22 @@ func CheckImage(ctx context.Context, registry, repository, tag, username, passwo
 			return false, err
 		}
 
-		req.Header.Set("Authorization", "Bearer "+token)
+		req.SetHeader("Authorization", "Bearer "+token)
 	} else {
 		token, err := AuthOtherRegistry(username, password)
 		if err != nil {
 			return false, err
 		}
 
-		req.Header.Set("Authorization", "Basic "+token)
+		req.SetHeader("Authorization", "Basic "+token)
 	}
 
-	client := &http.Client{
-		Timeout: timeout,
-	}
-
-	resp, err := client.Do(req)
-
+	resp, err := req.Head(url)
 	if err != nil {
 		return false, err
 	}
 
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode() != http.StatusOK {
 		return false, nil
 	}
 

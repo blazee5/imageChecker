@@ -23,8 +23,6 @@ func (s *ImageService) CheckImage(ctx context.Context, input domain.CheckImageRe
 	cacheExists, err := s.repo.CacheRepository.GetByImage(ctx, repository)
 
 	if err == nil {
-		s.log.Error("error while get image in cache", "error", err)
-
 		return cacheExists, nil
 	}
 
