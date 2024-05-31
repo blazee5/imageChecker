@@ -23,18 +23,24 @@ func (s *ImageService) CheckImage(ctx context.Context, input domain.CheckImageRe
 	cacheExists, err := s.repo.CacheRepository.GetByImage(ctx, repository)
 
 	if err == nil {
+		s.log.Error("error while get image in cache", "error", err)
+
 		return cacheExists, nil
 	}
 
 	exists, err := s.repo.DockerRepository.GetExists(ctx, registry, repository, tag, input.Username, input.Password)
 
 	if err != nil {
+		s.log.Error("error while get image in docker api", "error", err)
+
 		return exists, err
 	}
 
 	err = s.repo.CacheRepository.SetByImage(ctx, repository, exists)
 
 	if err != nil {
+		s.log.Error("error while set image in cache", "error", err)
+
 		return exists, err
 	}
 

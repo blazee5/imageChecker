@@ -20,6 +20,8 @@ func (repo *Repository) GetExists(ctx context.Context, registry, repository, tag
 	exists, err := docker.CheckImage(ctx, registry, repository, tag, username, password, repo.timeout)
 
 	if err != nil {
+		repo.log.Error("error while get image exists in docker api", "error", err)
+
 		return false, err
 	}
 

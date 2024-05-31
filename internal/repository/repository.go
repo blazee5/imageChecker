@@ -27,6 +27,6 @@ type DockerRepository interface {
 
 func NewRepository(log *slog.Logger, cfg *config.Config, rdb *redis.Client) *Repository {
 	return &Repository{
-		CacheRepository:  redisRepo.NewRepository(rdb),
+		CacheRepository:  redisRepo.NewRepository(log, rdb),
 		DockerRepository: docker.NewRepository(log, cfg.Timeout)}
 }
