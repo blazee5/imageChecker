@@ -44,8 +44,11 @@ func (repo *JobRepository) CreateJob(ctx context.Context, input domain.CreateJob
 	opts := api.WriteOptions{}
 
 	_, _, err := repo.client.Jobs().Register(job, opts.WithContext(ctx))
+
 	if err != nil {
-		return fmt.Errorf("error registering job: %w", err)
+		repo.log.Error("error while register job in nomad", "error", err)
+
+		return fmt.Errorf("error while register job in nomad: %w", err)
 	}
 
 	return nil
