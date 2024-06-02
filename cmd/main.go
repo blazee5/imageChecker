@@ -7,6 +7,7 @@ import (
 	"github.com/blazee5/imageChecker/internal/service"
 	redisLib "github.com/blazee5/imageChecker/lib/db/redis"
 	"github.com/blazee5/imageChecker/lib/logger"
+	"github.com/blazee5/imageChecker/lib/nomad"
 	"github.com/gin-gonic/gin"
 	"log"
 	"log/slog"
@@ -25,9 +26,11 @@ func main() {
 		Password: cfg.Redis.Password,
 	})
 
+	client := nomad.New()
+
 	r := gin.Default()
 
-	repositories := repository.NewRepository(logger, cfg, rdb)
+	repositories := repository.NewRepository(logger, cfg, rdb, client)
 	services := service.NewService(logger, repositories)
 	handlers := handler.NewHandler(logger, services)
 

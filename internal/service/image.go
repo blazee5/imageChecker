@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/blazee5/imageChecker/internal/domain"
 	"github.com/blazee5/imageChecker/internal/repository"
-	"github.com/blazee5/imageChecker/lib/docker"
+	"github.com/blazee5/imageChecker/lib/api/docker"
 	"log/slog"
 )
 

@@ -23,7 +23,6 @@ func TestHandler_Check(t *testing.T) {
 
 	tests := []struct {
 		name         string
-		fields       fields
 		input        domain.CheckImageRequest
 		mockFunc     func(f *fields)
 		wantStatus   int
@@ -31,9 +30,6 @@ func TestHandler_Check(t *testing.T) {
 	}{
 		{
 			name: "success",
-			fields: fields{
-				service: mocks.NewImage(t),
-			},
 			input: domain.CheckImageRequest{
 				Image:     "nginx",
 				IsPrivate: false,
@@ -51,9 +47,6 @@ func TestHandler_Check(t *testing.T) {
 		},
 		{
 			name: "bad request",
-			fields: fields{
-				service: mocks.NewImage(t),
-			},
 			input: domain.CheckImageRequest{
 				Image:     "",
 				IsPrivate: false,
@@ -68,9 +61,6 @@ func TestHandler_Check(t *testing.T) {
 		},
 		{
 			name: "server error",
-			fields: fields{
-				service: mocks.NewImage(t),
-			},
 			input: domain.CheckImageRequest{
 				Image:     "nginx",
 				IsPrivate: false,
@@ -90,7 +80,9 @@ func TestHandler_Check(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			f := tt.fields
+			f := fields{
+				service: mocks.NewImage(t),
+			}
 			tt.mockFunc(&f)
 
 			log := logger.NewLogger()
@@ -99,17 +91,17 @@ func TestHandler_Check(t *testing.T) {
 			}
 			h := NewHandler(log, svc)
 
-			router := gin.Default()
-			router.POST("/check", h.Check)
+			r := gin.Default()
+			RegisterHandlers(r, h)
 
 			jsonData, err := json.Marshal(tt.input)
 			assert.NoError(t, err)
 
-			req, _ := http.NewRequest("POST", "/check", bytes.NewBuffer(jsonData))
+			req, _ := http.NewRequest(http.MethodGet, "/check-image", bytes.NewBuffer(jsonData))
 			req.Header.Set("Content-Type", "application/json")
 
 			w := httptest.NewRecorder()
-			router.ServeHTTP(w, req)
+			r.ServeHTTP(w, req)
 
 			var response map[string]interface{}
 			err = json.Unmarshal(w.Body.Bytes(), &response)

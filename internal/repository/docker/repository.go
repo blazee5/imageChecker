@@ -2,7 +2,7 @@ package docker
 
 import (
 	"context"
-	"github.com/blazee5/imageChecker/lib/docker"
+	"github.com/blazee5/imageChecker/lib/api/docker"
 	"log/slog"
 	"time"
 )
