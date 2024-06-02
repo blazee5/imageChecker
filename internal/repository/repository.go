@@ -36,7 +36,7 @@ type JobRepository interface {
 
 func NewRepository(log *slog.Logger, cfg *config.Config, rdb *redis.Client, client *api.Client) *Repository {
 	return &Repository{
-		CacheRepository:  redisRepo.NewRepository(log, rdb),
+		CacheRepository:  redisRepo.NewImageRepository(log, rdb),
 		DockerRepository: docker.NewRepository(log, cfg.Timeout),
 		JobRepository:    nomad.NewJobRepository(log, client),
 	}

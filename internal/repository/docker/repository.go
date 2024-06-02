@@ -2,9 +2,11 @@ package docker
 
 import (
 	"context"
-	"github.com/blazee5/imageChecker/lib/api/docker"
+	"fmt"
 	"log/slog"
 	"time"
+
+	"github.com/blazee5/imageChecker/lib/api/docker"
 )
 
 type Repository struct {
@@ -22,7 +24,7 @@ func (repo *Repository) GetExists(ctx context.Context, registry, repository, tag
 	if err != nil {
 		repo.log.Error("error while get image exists in docker api", "error", err)
 
-		return false, err
+		return false, fmt.Errorf("error while get image exists in docker api: %w", err)
 	}
 
 	return exists, nil
